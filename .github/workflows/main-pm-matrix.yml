@@ -49,7 +49,12 @@ jobs:
           # Used "set -ex" instead of hashbang since script isn't executed with hashbang
           set -ex
           trap "exit 1" ERR
-          ./compile.sh -t linux64 -j 4 -g -F -P ${{ inputs.pm-version-major }} -c ./download_cache -D -z ${{ inputs.php-version-base }}
+          ./compile.sh -t linux64 -j 4 -g -F -P ${{ inputs.pm-version-major }} -c ./download_cache -D -z ${{ inputs.php-version-base }} -J
+
+
+      - name: Enable JIT in php.ini
+        run: |
+          sed -i 's/opcache.jit=off/opcache.jit=tracing/' bin/php7/bin/php.ini
 
       - name: Create tarball
         run: |
@@ -101,9 +106,11 @@ jobs:
           SOURCES_PATH: ${{ github.workspace }}\pocketmine-php-sdk
           PM_VERSION_MAJOR: ${{ inputs.pm-version-major }}
           PHP_VERSION_BASE: ${{ inputs.php-version-base }}
+          PHP_JIT_SUPPORT: 1
 
       - name: Prepare artifacts
         run: |
+          (Get-Content -Path "bin\php\php.ini") -replace "opcache.jit=off", "opcache.jit=tracing" | Set-Content -Path "bin\php\php.ini"
           mkdir temp
           Compress-Archive -Path .\bin -DestinationPath "PHP-${{ inputs.php-version-base }}-Windows-x64-PM${{ inputs.pm-version-major }}.zip"
           move php-debug-pack-*.zip temp/Z-PHP-${{ inputs.php-version-base }}-Windows-x64-PM${{ inputs.pm-version-major }}-debugging-symbols.zip
